@@ -7,7 +7,9 @@
   "license": "MIT",
   "private": false,
   "browserslist": "last 2 Chrome versions",
-  "scripts": {},
+  "scripts": {
+    "run": "ts-node src/index.ts"
+  },
   "dependencies": {
     "@rupertofly/h": "^2.0.3",
     "@types/node": "^14.11.2",
@@ -18,7 +20,8 @@
     "pngjs": "^5.0.0"
   },
   "devDependencies": {
-    "@types/d3": "^5.7.2"
+    "@types/d3": "^5.7.2",
+    "ts-node": "^9.0.0"
   },
   "prettier": {
     "singleQuote": true,
