@@ -1,67 +1,76 @@
 import { createCanvas } from 'canvas';
-import { forceX, range } from 'd3';
+import * as h from '@rupertofly/h';
+import {
+  extent,
+  forceX,
+  interpolateInferno,
+  polygonCentroid,
+  randomUniform,
+  range,
+  scaleLog,
+  scalePow,
+  voronoi,
+  xml,
+} from 'd3';
 import * as fs from 'fs/promises';
 import {
   loadNativeClipperLibInstanceAsync,
   NativeClipperLibRequestedFormat,
 } from 'js-angusj-clipper';
+import { getTopPixel } from './getTopPixel';
 import { imageToPixels } from './ImageToPixels';
+import { starsFromPixels } from './starsFromPixels';
 
 async function main() {
   console.log(`Start`);
   const pixels = await imageToPixels();
   const [WID, HEI] = pixels[0].size;
-  const cvs = createCanvas(WID * 6, HEI * 6);
+  const cvs = createCanvas(WID * 12, HEI * 12);
   const cx = cvs.getContext('2d');
   const op = pixels[50].nbs.map((i) => i);
 
   cx.fillStyle = 'white';
-  cx.fillRect(0, 0, WID * 6, HEI * 6);
+  cx.fillRect(0, 0, WID * 12, HEI * 12);
   cx.fillStyle = 'grey';
-  pixels
-    .filter((pxl) => pxl.pixelValue > 1)
-    .forEach((pxl) => pxl.getUpHillPixel(pxl.nbs.map((pi) => pixels[pi])));
+  const stars = starsFromPixels(pixels);
 
-  const nonZero = pixels.filter((px) => px.pixelValue > 1 && px.uphillIndex !== -1);
+  const [MIN, MAX] = extent([...stars.values()]);
+  const sc = scalePow().domain([MIN, MAX]).range([0, 1]).exponent(0.2);
 
-  nonZero.forEach((px) => {
-    const { x, y } = px;
+  const pts: [number, number][] = [];
+  const rnd = randomUniform(-0.5, 0.5);
 
-    cx.fillRect(x * 6, y * 6, 5, 5);
+  stars.forEach((val, star) => {
+    const stPx = pixels[star];
+    const { x, y } = stPx;
+
+    range(sc(val) * 50).forEach(() => {
+      pts.push([x + rnd(), y + rnd()]);
+    });
   });
-  cx.fillStyle = 'black';
-  range(100).forEach(() =>
-    pixels.forEach((pxl) => {
-      if (pxl.uphillIndex === -1) return pxl;
-      const upHillPixel = nonZero.find((uh) => uh.index === pxl.uphillIndex);
+  const vr = voronoi().size([WID, HEI]);
+  let dgram = vr.polygons(pts);
 
-      if (!upHillPixel) {
-        pxl.uphillIndex = -1;
-
-        return pxl;
-      }
-      if (upHillPixel.uphillIndex === -1) return pxl;
-      pxl.uphillIndex = upHillPixel.uphillIndex;
-
-      return pxl;
-    })
-  );
-  const allUphills = [...new Set(pixels.map((px) => px.uphillIndex))]
-    .filter((i) => i > 0)
-    .map((i) => pixels[i]);
-
-  allUphills.forEach((pxl) => {
-    const { x, y } = pxl;
-
-    cx.fillRect(x * 6, y * 6, 5, 5);
+  range(8).forEach(() => {
+    dgram.map((pg, i) => {
+      pts[i] = polygonCentroid(pg);
+    });
+    dgram = vr.polygons(pts);
   });
-  const valuedPixels = pixels.filter((px) => px.uphillIndex === -1 && px.pixelValue > 1);
+  cx.lineWidth = 5;
+  dgram.map((pg) => {
+    range(12).forEach(() => {
+      const scaledPg = pg.map(
+        (v) => [v[0] * 12 + 20 * rnd(), v[1] * 12 + 20 * rnd()] as [number, number]
+      );
 
-  cx.fillStyle = 'red';
-  valuedPixels.forEach((pxl) => {
-    const { x, y } = pxl;
+      cx.strokeStyle = 'rgba(0,0,0,0.1)';
+      const newloop = [...h.spline(scaledPg, Math.min(8, scaledPg.length - 2), true, 300)];
 
-    cx.fillRect(1 + x * 6, 1 + y * 6, 3, 3);
+      cx.beginPath();
+      h.drawLoop(newloop, true, cx);
+      cx.stroke();
+    });
   });
   const buf = cvs.toBuffer();
 

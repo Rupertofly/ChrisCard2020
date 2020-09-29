@@ -41,27 +41,41 @@ export class Pixel {
       [0, 1],
       [1, 1],
     ]
-      .map(([ox, oy]) => toI(x + ox, y + oy, this.size))
-      .filter((d) => d !== undefined);
+      .map(([ox, oy], i) => ({ pixel: toI(x + ox, y + oy, this.size), adj: i }))
+      .filter((d) => d.pixel !== undefined);
   }
-  getUpHillPixel(adjacentPixels: Pixel[]) {
+  getUpHillPixel(adjacentPixels: { pixel: Pixel; adj: number }[]) {
     if (adjacentPixels.length < 1) return this;
-    const sortedAdj = adjacentPixels.sort((a, b) => {
-      if (a.pixelValue === b.pixelValue) return a.index - b.index;
+    const sortedAdj = [...adjacentPixels].sort((a, b) => {
+      if (a.pixel.pixelValue === b.pixel.pixelValue) return a.adj - b.adj;
 
-      return b.pixelValue - a.pixelValue;
+      return b.pixel.pixelValue - a.pixel.pixelValue;
     });
+    const hasGreaterNeighbour = sortedAdj.some((n) => n.pixel.pixelValue > this.pixelValue);
+    const hasEqualNeighbour = sortedAdj.some((n) => n.pixel.pixelValue >= this.pixelValue);
 
-    if (this.pixelValue < 10) {
-      this.uphillIndex = -1;
+    const { pixel: best, adj: bestI } = sortedAdj[0];
+
+    if (hasGreaterNeighbour) {
+      this.uphillIndex = best.index;
 
       return this;
     }
-    if (sortedAdj[0].pixelValue > this.pixelValue && sortedAdj[0].pixelValue > 10)
-      this.uphillIndex = sortedAdj[0].index;
-    else if (sortedAdj[0].index < this.index && sortedAdj[0].pixelValue > 10)
-      this.uphillIndex = sortedAdj[0].index;
-    else this.uphillIndex = -1;
+    const equals = sortedAdj.filter((n) => n.pixel.pixelValue === this.pixelValue);
+
+    if (hasEqualNeighbour && equals.some(({ adj }) => adj < 4)) {
+      const eq = equals.find(({ adj }) => adj < 4)?.pixel;
+
+      if (!eq) {
+        this.uphillIndex = -1;
+
+        return this;
+      }
+      this.uphillIndex = eq.index;
+
+      return this;
+    }
+    this.uphillIndex = -1;
 
     return this;
   }
