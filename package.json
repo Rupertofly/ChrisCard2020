@@ -8,19 +8,22 @@
   "private": false,
   "browserslist": "last 2 Chrome versions",
   "scripts": {
-    "run": "ts-node src/index.ts"
+    "run": "ts-node src/index.ts",
+    "rebuild": "node-gyp rebuild"
   },
   "dependencies": {
-    "@rupertofly/h": "^2.0.3",
+    "@rupertofly/h": "^2.1.0",
+    "@rupertofly/noise": "^1.0.2",
     "@types/node": "^14.11.2",
     "@types/pngjs": "^3.4.2",
     "canvas": "^2.6.1",
-    "d3": "5.16",
+    "d3": "^6.3.1",
     "js-angusj-clipper": "^1.1.0",
+    "open-simplex-noise": "^2.4.0",
     "pngjs": "^5.0.0"
   },
   "devDependencies": {
-    "@types/d3": "^5.7.2",
+    "@types/d3": "^6.2.0",
     "ts-node": "^9.0.0"
   },
   "prettier": {
